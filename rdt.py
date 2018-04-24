@@ -7,35 +7,43 @@ import random
 
 IPPROTO_RDT = 0xfe
 
+# Global variables
+ports = []
+addrs = []
+
 class RDTSocket(StreamSocket):
     # Initialize 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.port = None
         self.addr = None
-        ports = []
-        addrs = []
         # Other initialization here
 
     # Assigns port to socket
     def bind(self, port): 
         # Check if available
-        self.port = port
+        if port not in ports:
+            self.port = port
+            ports.append(port)
+        else:
+            pass # TODO Random or error
 
     # Waits for a connection
     def listen(self):
-        pass
+        pass # TODO how do I wait?
 
     # Clones socket with open port
     def accept(self): 
-        pass
+        sock = super.socket()
+        # TODO everything
 
     # Tell a server you want to connect
     def connect(self, addr): 
         if self.port == None:
                 self.port = self.random_port() # Bind random
         self.addr = addr
-    
+        addrs.append(addr)
+        
     # Tell client to recieve from you
     def send(self, data): 
         # Check connected
@@ -75,7 +83,7 @@ class RDTProtocol(Protocol):
         # Check if socket is in use, get unused
         return self.sock
 
-    # 
+    # TODO idk 
     def input(self, seg, rhost):
         pass
         # self.sock.input(seg, src)
