@@ -8,6 +8,7 @@ import random
 IPPROTO_RDT = 0xfe
 
 class RDTSocket(StreamSocket):
+    # Initialize 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.port = None
@@ -16,53 +17,65 @@ class RDTSocket(StreamSocket):
         addrs = []
         # Other initialization here
 
-    def bind(self, port): # Assigns port to socket
+    # Assigns port to socket
+    def bind(self, port): 
         # Check if available
         self.port = port
 
-    def listen(self): # Waits for a connection
+    # Waits for a connection
+    def listen(self):
         pass
 
-    def accept(self): # Clones socket with open port
+    # Clones socket with open port
+    def accept(self): 
         pass
 
-    def connect(self, addr): # Tell a server you want to connect
+    # Tell a server you want to connect
+    def connect(self, addr): 
         if self.port == None:
                 self.port = self.random_port() # Bind random
         self.addr = addr
-
-    def send(self, data): # Tell client to recieve from you
+    
+    # Tell client to recieve from you
+    def send(self, data): 
         # Check connected
         # Send if able
         self.output(data, self.addr)
             # Wait for ACK
 
-    def input(self, data, src): # Tell proto that someone is connecting
+    # Tell proto that someone is connecting
+    def input(self, data, src):
         self.deliver(data, src)
 
+    # Send to specific client
     def sendto(self, msg, dst):
         # Extract header then send
         self.output(msg, dst)
 
+    # Generate random free port number
     def random_port():
         num = random.randint(1024, 8000)
-        # check if num is taken
+        while(num in ports):
+            num = random.randint(1024, 8000)
         return num
 
 class RDTProtocol(Protocol):
     PROTO_ID = IPPROTO_RDT
     SOCKET_CLS = RDTSocket
 
+    # Initialize
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sock = super().socket() 
         # Other initialization here
         # Do multiplexing things
 
+    # Create new socket
     def socket(self):
         # Check if socket is in use, get unused
         return self.sock
 
+    # 
     def input(self, seg, rhost):
         pass
         # self.sock.input(seg, src)
