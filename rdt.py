@@ -8,45 +8,53 @@ import random
 IPPROTO_RDT = 0xfe
 
 class RDTSocket(StreamSocket):
-    
+
+    inque = queue.Queue()
+
     # Initialize 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.port = None
         self.addr = None
-        
         # Other initialization here
-
-    # Assigns port to socket
-    def bind(self, port): 
-        # Check if available
-        if port in ports:
-            raise Socket.AddressInUse
-        self.port = port
-        ports.append(port)
-
-    # Waits for a connection
-    def listen(self):
-        pass # queue.queue - Blocking queue 
 
     # Clones socket with open port
     def accept(self): 
-        sock = super.socket()
+        inque.put(recv())
+        # Strip headers and return
 
     # Tell a server you want to connect
     # Agree to communicate
     def connect(self, addr): 
         if self.port == None:
-                self.port = self.random_port() # Bind random
+                bind(self, self.proto.random_port()) # Bind random ununsed
         self.addr = addr
-        addrs.append(addr)
+        output(self, (self, addr), addr) 
         # Connect wait for timeout
-        
+ 
+    # Waits for a connection
+    def listen(self):
+        if self.port == None:
+            raise StreamSocket.NotBound
+        if self.addr != None:
+            raise StreamSocket.AlreadyConnected
+         
+    
+    # Assigns port to socket
+    def bind(self, port): 
+        # Check if available
+        if self.proto.pairs.get(port) == None:
+            raise Socket.AddressInUse
+        if self.addr != None: 
+            raise StreamSocket.AlreadyConnected
+        self.port = port
+
+    # Call deliver when ready to send    
     # Tell client to recieve from you
     def send(self, data): 
         # Check connected
-        if self.addr == None
-            print("error")
+        if self.addr == None:
+            raise StreamSocket.NotConnected
         # Send if able
         self.output(data, self.addr)
             # Wait for ACK
@@ -55,17 +63,8 @@ class RDTSocket(StreamSocket):
     def input(self, data, src):
         self.deliver(data, src)
 
-    # Send to specific client
-    def sendto(self, msg, dst):
-        # Extract header then send
-        self.output(msg, dst)
-
-    # Generate random free port number
-    def random_port():
-        num = random.randint(30000, 60000)
-        while(num in ports):
-            num = random.randint(30000, 60000)
-        return num
+    def make(self, msg):
+        string = self.addr + "," + self.port + "," + msg
 
 # One per host
 # Stop and wait
@@ -77,7 +76,7 @@ class RDTProtocol(Protocol):
     # Initialize
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.sock = super().socket() 
+        pairs = {} 
         # Other initialization here
         # Do multiplexing things - packet -> socket
 
@@ -89,3 +88,10 @@ class RDTProtocol(Protocol):
     def input(self, seg, rhost):
         pass
         # self.sock.input(seg, src)
+
+    # Generate random free port number
+    def random_port():
+        num = random.randint(30000, 60000)
+        while(num in pairs.keys):
+            num = random.randint(30000, 60000)
+        return num
