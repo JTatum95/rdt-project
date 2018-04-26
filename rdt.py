@@ -16,12 +16,13 @@ class RDTSocket(StreamSocket):
         super().__init__(*args, **kwargs)
         self.port = None
         self.addr = None
+        self.rpair = None
         # self.proto = RDTProtocol(self)
         # Other initialization here
 
     # Clones socket with open port
     def accept(self): 
-        pass 
+     
         # inque.put(recv())
         # Strip headers and return
 
@@ -31,8 +32,8 @@ class RDTSocket(StreamSocket):
         if self.port == None:
             num = self.proto.random_port() 
             self.bind(self, num) # Bind random ununsed
-        self.addr = addr
-        output(self, make(self, ""), addr) 
+        self.rpair = addr
+        self.proto.pairs[self.addr] = self.port 
         # Connect wait for timeout
  
     # Waits for a connection
@@ -41,7 +42,8 @@ class RDTSocket(StreamSocket):
             raise StreamSocket.NotBound
         if self.addr != None:
             raise StreamSocket.AlreadyConnected
-    
+        new = inque.get() 
+
     # Assigns port to socket
     def bind(self, port): 
         # Check if available
@@ -54,7 +56,10 @@ class RDTSocket(StreamSocket):
 
     # Send to q
     def input(self, data, src):
-        self.deliver(data, src)  
+        inque.put((self.port, self.addr), src)
+        # wait for ack
+        # timer
+        # deliver()
 
     # Call deliver when ready to send    
     # Tell client to recieve from you
@@ -90,7 +95,9 @@ class RDTProtocol(Protocol):
         # return RDTSocket()
 
     def input(self, seg, rhost):
+    
         # Demux 
+        # caddr, cport, msg = seg.split(",",3)
         # self.sock.input(seg, src)
 
     # Generate random free port number
