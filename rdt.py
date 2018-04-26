@@ -16,19 +16,21 @@ class RDTSocket(StreamSocket):
         super().__init__(*args, **kwargs)
         self.port = None
         self.addr = None
-        self.proto = RDTProtocol(self)
+        # self.proto = RDTProtocol(self)
         # Other initialization here
 
     # Clones socket with open port
     def accept(self): 
-        inque.put(recv())
+        pass 
+        # inque.put(recv())
         # Strip headers and return
 
     # Tell a server you want to connect
     # Agree to communicate
-    def connect(self, addr): 
+    def connect(self, addr): # IP & Port
         if self.port == None:
-                bind(self, self.proto.random_port()) # Bind random ununsed
+            num = self.proto.random_port() 
+            self.bind(self, num) # Bind random ununsed
         self.addr = addr
         output(self, make(self, ""), addr) 
         # Connect wait for timeout
@@ -39,7 +41,6 @@ class RDTSocket(StreamSocket):
             raise StreamSocket.NotBound
         if self.addr != None:
             raise StreamSocket.AlreadyConnected
-         
     
     # Assigns port to socket
     def bind(self, port): 
@@ -51,6 +52,10 @@ class RDTSocket(StreamSocket):
         self.port = port
         self.proto.ports.append(port)
 
+    # Send to q
+    def input(self, data, src):
+        self.deliver(data, src)  
+
     # Call deliver when ready to send    
     # Tell client to recieve from you
     def send(self, data): 
@@ -61,10 +66,6 @@ class RDTSocket(StreamSocket):
         self.output(data, self.addr)
             # Wait for ACK
 
-    # Tell proto that someone is connecting
-    def input(self, data, src):
-        self.deliver(data, src)
-
     def make(self, msg):
         string = self.addr + "," + self.port + "," + msg
 
@@ -74,7 +75,6 @@ class RDTProtocol(Protocol):
     PROTO_ID = IPPROTO_RDT
     SOCKET_CLS = RDTSocket
 
-   
     # Keep track of
     # Initialize
     def __init__(self, *args, **kwargs):
@@ -90,11 +90,11 @@ class RDTProtocol(Protocol):
         # return RDTSocket()
 
     def input(self, seg, rhost):
-        pass
+        # Demux 
         # self.sock.input(seg, src)
 
     # Generate random free port number
-    def random_port():
+    def random_port(self):
         num = random.randint(30000, 60000)
         while(num in pairs.keys):
             num = random.randint(30000, 60000)

@@ -13,7 +13,6 @@ class SampleDatagramSocket(DatagramSocket):
 class SampleDatagramProtocol(Protocol):
     """
     Sample unreliable datagram protocol
-
     This class is intended only to demonstrate how to subclass Protocol,
     and it is of no practical use.  Rather than do any multiplexing, it creates
     a single datagram socket (per host) and passes it every datagram which
