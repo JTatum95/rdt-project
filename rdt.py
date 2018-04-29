@@ -15,7 +15,6 @@ class RDTSocket(StreamSocket):
         self.port = None
         self.rpair = None # rpair[0] = IP, rpair[1] = port
         self.seq = 0 
-        self.flag = None
 
         self.bound = False
         self.accepted = False
@@ -26,9 +25,10 @@ class RDTSocket(StreamSocket):
         # self.proto = RDTProtocol(self)
         # Other initialization here
     
-    def make(self, msg):
+    # Helper function to encode data
+    def make(self, flag, msg):
         string = str(self.rpair[0]) + "," + str(self.rpair[1]) + "," \
-            + str(self.port) + "," + str(self.seq) + "," + msg
+            + str(self.port) + "," + flag + "," + str(self.seq) + "," + msg
         return string.encode()
 
     # Clones socket with open port
@@ -36,23 +36,51 @@ class RDTSocket(StreamSocket):
         if self.server == False:
             raise StreamSocket.NotListening
         
-        print("\n\n\n QUEUE")
-        print(list(self.inque.queue))
-        print("\n\n\n")
-
         new = self.inque.get() 
         assert new != None
-        ip = new[0]
-        port = new[1]
-        
-        socket = self.proto.socket()
-        port = self.proto.random_port()
-        socket.bind(port) 
-        socket.rpair = (ip, port)
+       
+        host = new[0]
+        fld = new[1].decode().split(",", 5)
+        sip = fld[0]
+        sport = int(fld[1])
+        dport = int(fld[2])
+        flag = fld[3]
+        seq = int(fld[4])
+        msg = fld[5]
 
-        self.accepted = True
-        socket.accepted = True
-        return (self, (ip, port))
+        print("if")
+        if flag == "SYN":
+        # setup new socket
+            socket = self.proto.socket()
+            port = self.proto.random_port()
+            socket.bind(port) 
+            socket.rpair = (host, dport)
+            print(socket.rpair) 
+    
+
+            enchilada = socket.make("SYNACK", "")
+            socket.proto.output(enchilada, host)
+            socket.accepted = True
+            
+            """
+            print("SIP, RPAIR[0]: ")
+            print(sip)
+            print(socket.rpair[0])
+            """
+        
+            print("Socket queue: ")
+            print(list(socket.inque.queue))
+            print("Self queue: ")
+            print(list(self.inque.queue))
+            
+            ack = socket.inque.get()
+            #print("ACK")
+            print(ack)
+            sign = ack[1].decode().split(",", 5)
+            print(sign[3]) 
+
+            if sign[3] == "ACK":
+                return (socket, (socket.rpair[0], socket.rpair[1]))
 
     # Tell a server you want to connect
     # Agree to communicate
@@ -62,20 +90,30 @@ class RDTSocket(StreamSocket):
         if not self.bound:
             num = self.proto.random_port() 
             self.bind(num) # Bind random ununsed
-        
+
+        """
+        print("\nADDR[0]")
+        print(addr[0])
+        print("RPAIR[0]")
+        print(self.rpair[0])
+        """
+
         self.rpair = addr
-         
         # Handshake
-        # msg = "" + str(addr[0]) + "," + str(addr[1]) + "," + str(self.port) + "," + "SYN"
-        # msg = msg.encode() 
-        msg = self.make("SYN")
-        print("SYN" + str(msg)) 
+        msg = self.make("SYN", "")
+        # print("SYN" + str(msg)) 
         self.connected = True
-        self.proto.output(msg, self.rpair[0]) 
+        self.proto.output(msg, addr[0]) 
 
-        #stuff = self.inque.get()
-        
-
+        stuff = self.inque.get()
+        thing = stuff[1]
+        fld = thing.decode().split(",", 5)
+        print("GIRL NAH")
+        if fld[3] == "SYNACK":
+            print("GIRL YOU LOOKING LIKE A SYNACK")
+            self.rpair = (self.rpair[0], fld[2])
+            self.proto.output(self.make("ACK", ""), self.rpair[0])
+    
     # Waits for a connection
     def listen(self):
         if self.port == None:
@@ -89,21 +127,13 @@ class RDTSocket(StreamSocket):
         # Check if available
         if self.connected or self.accepted:
             raise StreamSocket.AlreadyConnected
-        if (port in self.proto.ports) or self.bound:
+        if (port in self.proto.pairs) or self.bound:
             raise Socket.AddressInUse
         
         self.port = port
         self.proto.ports.append(port)
         self.proto.pairs[port] = self
         self.bound = True
-
-    # Send to q
-    def input(self, seg, host):
-        # caddr, cport, msg = seg.split(",",3)
-        # is msg == "ACK"
-            # output("SYN")
-        # timer
-        self.proto.output(seg, host)
 
     # Call deliver when ready to send    
     # Tell client to recieve from you
@@ -112,45 +142,34 @@ class RDTSocket(StreamSocket):
         if not self.connected:
             raise StreamSocket.NotConnected
         # Send if able
-        self.proto.output(data, self.rpair)
-            # Wait for ACK
+        self.proto.output(data, self.rpair[0])
 
-
-# One per host
 # Stop and wait
 class RDTProtocol(Protocol):
     PROTO_ID = IPPROTO_RDT
     SOCKET_CLS = RDTSocket
 
-    # Keep track of
     # Initialize
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ports = []   
         self.pairs = {} # Map MY port to MY socket
 
-    # Create new socket
-    # def socket(self):
-        # Check if socket is in use, get unused
-        # return RDTSocket()
+     
     def input(self, seg, host):
-        new = seg.decode().split(",", 4) 
+        new = seg.decode().split(",", 5) 
         dport = int(new[1])
-        
+       
         """
-        dip = new[0]
-        sport = int(new[2])
-        msg = new[3]
-      
-        print("\nPORTS ")
-        print(self.ports)
-        print("\nSRC: " + str(dip) + " " + str(sport) + "\nDES: " + str(dport))
+        print("DPORT")
+        print(dport)
+        print("HOST")
+        print(host)
         """
-
-        self.pairs[dport].inque.put((host, dport))
+        print(dport in self.pairs)
+        print(self.pairs) 
+        self.pairs[dport].inque.put((host, seg))
         self.pairs[dport].deliver(seg)
-        # Demux 
-        # self.sock.input(seg, src)
 
     # Generate random free port number
     def random_port(self):
