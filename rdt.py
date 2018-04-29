@@ -22,8 +22,6 @@ class RDTSocket(StreamSocket):
         self.server = False
         
         self.inque = queue.Queue()
-        # self.proto = RDTProtocol(self)
-        # Other initialization here
     
     # Helper function to encode data
     def make(self, flag, msg):
@@ -48,38 +46,23 @@ class RDTSocket(StreamSocket):
         seq = int(fld[4])
         msg = fld[5]
 
-        print("if")
         if flag == "SYN":
         # setup new socket
             socket = self.proto.socket()
             port = self.proto.random_port()
             socket.bind(port) 
             socket.rpair = (host, dport)
-            print(socket.rpair) 
     
 
             enchilada = socket.make("SYNACK", "")
             socket.proto.output(enchilada, host)
             socket.accepted = True
             
-            """
-            print("SIP, RPAIR[0]: ")
-            print(sip)
-            print(socket.rpair[0])
-            """
-        
-            print("Socket queue: ")
-            print(list(socket.inque.queue))
-            print("Self queue: ")
-            print(list(self.inque.queue))
-            
             ack = socket.inque.get()
-            #print("ACK")
-            print(ack)
             sign = ack[1].decode().split(",", 5)
-            print(sign[3]) 
 
             if sign[3] == "ACK":
+                socket.connected = True
                 return (socket, (socket.rpair[0], socket.rpair[1]))
 
     # Tell a server you want to connect
@@ -108,9 +91,9 @@ class RDTSocket(StreamSocket):
         stuff = self.inque.get()
         thing = stuff[1]
         fld = thing.decode().split(",", 5)
-        print("GIRL NAH")
+        #print("GIRL NAH")
         if fld[3] == "SYNACK":
-            print("GIRL YOU LOOKING LIKE A SYNACK")
+            #print("GIRL YOU LOOKING LIKE A SYNACK")
             self.rpair = (self.rpair[0], fld[2])
             self.proto.output(self.make("ACK", ""), self.rpair[0])
     
@@ -142,7 +125,8 @@ class RDTSocket(StreamSocket):
         if not self.connected:
             raise StreamSocket.NotConnected
         # Send if able
-        self.proto.output(data, self.rpair[0])
+        self.proto.output(",".join((self.rpair[0], str(self.rpair[1]), \
+                str(self.port), "", "0", "")).encode() + data, self.rpair[0])
 
 # Stop and wait
 class RDTProtocol(Protocol):
@@ -165,11 +149,14 @@ class RDTProtocol(Protocol):
         print(dport)
         print("HOST")
         print(host)
-        """
         print(dport in self.pairs)
         print(self.pairs) 
-        self.pairs[dport].inque.put((host, seg))
-        self.pairs[dport].deliver(seg)
+        """
+        
+        if new[3] == "SYN" or new[3] == "ACK" or new[3] == "SYNACK":
+            self.pairs[dport].inque.put((host, seg))
+        else:
+            self.pairs[dport].deliver(new[5].encode())
 
     # Generate random free port number
     def random_port(self):
